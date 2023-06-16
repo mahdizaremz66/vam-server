@@ -10,7 +10,7 @@ app.use(express.json())
 
 // Route to get all posts
 app.get("/api/get", (req, res) => {
-    db.query("SELECT * FROM t_vam", (err, result) => {
+    db.query("SELECT * FROM v_vam_vaz2", (err, result) => {
         if (err) {
             console.log(err)
         }
