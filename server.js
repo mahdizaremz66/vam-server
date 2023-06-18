@@ -8,6 +8,16 @@ const PORT = 3002;
 app.use(cors());
 app.use(express.json())
 
+app.post("/api/token", (req, res) => {
+    db.query("SELECT * FROM v_vam_vaz2", (err, result) => {
+        if (err) {
+            console.log(err)
+        }
+        res.send(result)
+    }
+    );
+});
+
 // Route to get all posts
 app.get("/api/get", (req, res) => {
     db.query("SELECT * FROM v_vam_vaz2", (err, result) => {
