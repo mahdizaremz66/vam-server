@@ -1,6 +1,7 @@
-const Sequelize = require('sequelize');
-module.exports = function(sequelize, DataTypes) {
-  return sequelize.define('t_vaz', {
+const { DataTypes } = require('sequelize');
+const sequelize = require('../config/database');
+
+const t_vaz= sequelize.define('t_vaz', {
     code_vaz: {
       type: DataTypes.INTEGER,
       allowNull: false,
@@ -25,4 +26,6 @@ module.exports = function(sequelize, DataTypes) {
       },
     ]
   });
-};
+
+  module.exports=t_vaz;
+  

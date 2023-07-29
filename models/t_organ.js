@@ -1,7 +1,7 @@
-const Sequelize = require('sequelize');
+const { DataTypes } = require('sequelize');
+const sequelize = require('../config/database');
 
-module.exports = function(sequelize, DataTypes) {
-  const Organ = sequelize.define('t_organ', {
+  const t_organ = sequelize.define('t_organ', {
     code_organ_org: {
       type: DataTypes.INTEGER,
       allowNull: false,
@@ -30,9 +30,4 @@ module.exports = function(sequelize, DataTypes) {
     ]
   });
 
-  Organ.associate = (models) => {
-    Organ.belongsToMany(models.User, { through: models.UserOrgan, foreignKey: 'code_organ_usr', otherKey: 'user_name_usr' });
-  };
-
-  return Organ;
-};
+  module.exports =t_organ;

@@ -1,6 +1,7 @@
-const Sequelize = require('sequelize');
-module.exports = function(sequelize, DataTypes) {
-  return sequelize.define('t_vam', {
+const { DataTypes } = require('sequelize');
+const sequelize = require('../config/database');
+
+const t_vam= sequelize.define('t_vam', {
     id_letter_vam: {
       type: DataTypes.STRING(20),
       allowNull: false,
@@ -97,4 +98,5 @@ module.exports = function(sequelize, DataTypes) {
       },
     ]
   });
-};
+
+  module.exports=t_vam;

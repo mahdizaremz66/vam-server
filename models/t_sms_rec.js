@@ -1,6 +1,7 @@
-const Sequelize = require('sequelize');
-module.exports = function(sequelize, DataTypes) {
-  return sequelize.define('t_sms_rec', {
+const { DataTypes } = require('sequelize');
+const sequelize = require('../config/database');
+
+const t_sms_rec= sequelize.define('t_sms_rec', {
     id_sms_rec: {
       type: DataTypes.INTEGER,
       allowNull: false,
@@ -33,4 +34,5 @@ module.exports = function(sequelize, DataTypes) {
       },
     ]
   });
-};
+
+  module.exports=t_sms_rec;
