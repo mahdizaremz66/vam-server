@@ -1,8 +1,7 @@
 const { DataTypes } = require('sequelize');
 const sequelize = require('../config/database');
 
-const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken');
+//const bcrypt = require('bcrypt');
 
 const t_user = sequelize.define('t_user', {
   user_name_usr: {
@@ -56,15 +55,15 @@ const t_user = sequelize.define('t_user', {
 //   user.pass_word_usr = hashedPassword;
 // });
 
-t_user.prototype.validatePassword = async function (password) {
-  return await bcrypt.compare(password, this.pass_word_usr);
-};
+// t_user.prototype.validatePassword = async function (password) {
+//   return await bcrypt.compare(password, this.pass_word_usr);
+// };
 
-t_user.prototype.generateToken = function () {
-  const token = jwt.sign({ user_name_usr: this.user_name_usr }, 'secret_key', { expiresIn: '3h' });
-  this.token_usr = token;
-  this.token_expr_usr = new Date(Date.now() + 3 * 60 * 60 * 1000); // Set token expiration time to 3 hours from now
-  return token;
-};
+// t_user.prototype.generateToken = function () {
+//   const token = jwt.sign({ user_name_usr: this.user_name_usr }, 'secret_key', { expiresIn: '3h' });
+//   this.token_usr = token;
+//   this.token_expr_usr = new Date(Date.now() + 3 * 60 * 60 * 1000); // Set token expiration time to 3 hours from now
+//   return token;
+// };
 
 module.exports = t_user;
