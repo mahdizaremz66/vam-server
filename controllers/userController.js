@@ -14,25 +14,40 @@ exports.createUser = async (req, res) => {
   try {
     const { user_name_usr, pass_word_usr, name_usr, mobile_usr, level_usr, access_usr, top_user_usr, organs, user_name_log } = req.body;
 
-    // Check if the user has the necessary access to create a new user
-    const LogUserAccess = await t_user.findOne({ where: { user_name_usr: user_name_log } });
-    // if (!creatingUserAccess || creatingUserAccess.access_usr !== '11111') {
-    //   return res.status(403).json({ message: 'دسترسی لازم برای ایجاد کاربر را ندارید.' });
-    // }
+    // کنترل دسترسی کاربر جاری برای ایجاد کاربر جدید
+    const logUserAccess = await t_user.findOne({ where: { user_name_usr: user_name_log } });
+    const logUserAccesss = logUserAccess.split('/');
+    if (logUserAccesss[0].charAt(3) !== '1') {
+      return res.status(403).json({ message: 'دسترسی لازم برای ایجاد کاربر را ندارید.' });
+    }
 
-    // Check if the new user's access level is lower or equal to the top user's access level
-    const topUserAccess = await t_user.findOne({ where: { user_name_usr: top_user_usr } });
-    // if (topUserAccess && topUserAccess.access_usr < access_usr) {
-    //   return res.status(400).json({ message: 'سطح دسترسی کاربر نمی تواند بیشتر از کاربر والدش باشد.' });
-    // }
-
+    // کنترل عدم وجود کاربر از قبل
     const existingUser = await t_user.findOne({ where: { user_name_usr } });
     if (existingUser) {
       return res.status(400).json({ message: 'کاربر با این نام کاربری وجود دارد' });
     }
 
+    // کنترل بیشتر نبودن سطح دسترسی کاربر جدید ار کاربر والدش
+    const topUserAccess = await t_user.findOne({ where: { user_name_usr: top_user_usr } });
+    const topUserAccesss = topUserAccess.split('/');
+    const crtUserAccesss = access_usr.split('/');
+    for (let i = 0; i <= 7; i++) {
+      if (crtUserAccesss[i] > topUserAccesss[i]) {
+        return res.status(400).json({ message: 'سطح دسترسی کاربر نمی تواند بیشتر از کاربر والدش باشد.' });
+      }
+    }
+
+    // کنترل عدم ایجاد دسترسی کاربر جدید به سازمان حامی که والدش دسترسی ندارد
+    for (const organCode of organs) {
+      const existingTopUserOrgan = await t_user_organ.findOne({ where: { user_name_usr: top_user_usr, code_organ_usr: organCode }, transaction });
+      if (!existingTopUserOrgan) {
+        return res.status(400).json({ message: 'کاربر نمی تواند به سازمان حامی که والدش دسترسی ندارد، دسترسی داشنه باشد.' });
+      }
+    }
+
     const hashedPassword = await bcrypt.hash(pass_word_usr, 10);
 
+    // ایجاد کاربر
     const user = await t_user.create({
       user_name_usr,
       pass_word_usr: hashedPassword,
@@ -43,7 +58,7 @@ exports.createUser = async (req, res) => {
       top_user_usr
     }, { transaction });
 
-    // Update UserOrgan access
+    // حذف و ایجاد مجدد دسترسی به سازمان های حامی
     await t_user_organ.destroy({ where: { user_name_usr }, transaction });
     if (level_usr != 'admin') {
       for (const organCode of organs) {
@@ -51,7 +66,7 @@ exports.createUser = async (req, res) => {
       }
     }
 
-    //Create log
+    // ثبت لاگ تغییرات
     const lastLog = await t_user_log.findOne({
       where: { user_name_log: user_name_log },
       order: [['index_log', 'DESC']],
@@ -85,11 +100,38 @@ exports.updateUser = async (req, res) => {
     const { user_name_usr } = req.params;
     const { pass_word_usr, name_usr, mobile_usr, level_usr, access_usr, top_user_usr, organs, user_name_log } = req.body;
 
+    // کنترل دسترسی کاربر جاری برای ویرایش کاربر
+    const logUserAccess = await t_user.findOne({ where: { user_name_usr: user_name_log } });
+    const logUserAccesss = logUserAccess.split('/');
+    if (logUserAccesss[0].charAt(2) !== '1') {
+      return res.status(403).json({ message: 'دسترسی لازم برای ویرایش کاربر را ندارید.' });
+    }
+
+    // کنترل وجود کاربر از قبل
     const user = await t_user.findOne({ where: { user_name_usr } });
     if (!user) {
       return res.status(404).json({ message: 'کاربر یافت نشد.' });
     }
 
+    // کنترل بیشتر نبودن سطح دسترسی کاربر جدید ار کاربر والدش
+    const topUserAccess = await t_user.findOne({ where: { user_name_usr: top_user_usr } });
+    const topUserAccesss = topUserAccess.split('/');
+    const crtUserAccesss = access_usr.split('/');
+    for (let i = 0; i <= 7; i++) {
+      if (crtUserAccesss[i] > topUserAccesss[i]) {
+        return res.status(400).json({ message: 'سطح دسترسی کاربر نمی تواند بیشتر از کاربر والدش باشد.' });
+      }
+    }
+
+    // کنترل عدم ایجاد دسترسی کاربر جدید به سازمان حامی که والدش دسترسی ندارد
+    for (const organCode of organs) {
+      const existingTopUserOrgan = await t_user_organ.findOne({ where: { user_name_usr: top_user_usr, code_organ_usr: organCode }, transaction });
+      if (!existingTopUserOrgan) {
+        return res.status(400).json({ message: 'کاربر نمی تواند به سازمان حامی که والدش دسترسی ندارد، دسترسی داشنه باشد.' });
+      }
+    }
+
+    // ویرایش کاربر
     user.pass_word_usr = pass_word_usr || user.pass_word_usr;
     user.name_usr = name_usr || user.name_usr;
     user.mobile_usr = mobile_usr || user.mobile_usr;
@@ -98,7 +140,7 @@ exports.updateUser = async (req, res) => {
     user.top_user_usr = top_user_usr || user.top_user_usr;
     await user.save({ transaction });
 
-    // Update UserOrgan access
+    // حذف و ایجاد مجدد دسترسی به سازمان های حامی
     await t_user_organ.destroy({ where: { user_name_usr }, transaction });
     if (level_usr != 'admin') {
       for (const organCode of organs) {
@@ -106,7 +148,7 @@ exports.updateUser = async (req, res) => {
       }
     }
 
-    //Create log
+    // ثبت لاگ تغییرات
     const lastLog = await t_user_log.findOne({
       where: { user_name_log: user_name_log },
       order: [['index_log', 'DESC']],
@@ -139,17 +181,31 @@ exports.deleteUser = async (req, res) => {
   try {
     const { user_name_usr, user_name_log } = req.params;
 
+    // کنترل دسترسی کاربر جاری برای حذف کاربر
+    const logUserAccess = await t_user.findOne({ where: { user_name_usr: user_name_log } });
+    const logUserAccesss = logUserAccess.split('/');
+    if (logUserAccesss[0].charAt(4) !== '1') {
+      return res.status(403).json({ message: 'دسترسی لازم برای ویرایش کاربر را ندارید.' });
+    }
+
+    // کنترل وجود کاربر از قبل
     const user = await t_user.findOne({ where: { user_name_usr } });
     if (!user) {
       return res.status(404).json({ message: 'کاربر یافت نشد.' });
     }
 
+    // کنترل عدم وجود کاربر زیرمجموعه برای کاربر در حال حذف
+    const haveSubUser = await t_user.findOne({where: { top_user_usr: user_name_usr },      transaction});
+    if (haveSubUser) {
+      return res.status(400).json({ message: 'این کاربر دارای کاربر زیر مجموعه است ابتدا کاربر(ان) زیر مجموعه را حذف نمایید.' });
+    }
+
     await user.destroy({ transaction });
 
-    // Remove UserOrgan access
+    // حذف و ایجاد مجدد دسترسی به سازمان های حامی
     await t_user_organ.destroy({ where: { user_name_usr }, transaction });
 
-    //Create log
+    // ثبت لاگ تغییرات 
     const lastLog = await t_user_log.findOne({
       where: { user_name_log: user_name_log },
       order: [['index_log', 'DESC']],
@@ -177,6 +233,51 @@ exports.deleteUser = async (req, res) => {
   }
 };
 
+exports.selectUser = async (req, res) => {
+  try {
+    const { user_name_usr, name_usr, mobile_usr, level_usr, user_name_log } = req.body;
+        
+    let allSubUsers = [];
+    
+    async function getSubUsers(parentUser) {
+      const subUsers = await t_user.findAll({
+        where: {
+          top_user_usr: user_name_log,
+          
+          user_name_usr: user_name_usr,
+          name_usr: name_usr,
+          mobile_usr: mobile_usr,
+          level_usr : level_usr,
+        },
+        attributes: ['user_name_usr', 'name_usr', 'mobile_usr', 'level_usr', 'top_user_usr'],
+      });
+      
+      if (subUsers.length > 0) {
+        allSubUsers = allSubUsers.concat(subUsers);
+        for (const subUser of subUsers) {
+          await getSubUsers(subUser);
+        }
+      }
+    }
+    
+    if (user_name_log) {
+      const rootUserInstance = await t_user.findOne({
+        where: { user_name_usr: user_name_log },
+      });
+      
+      if (rootUserInstance) {
+        allSubUsers.push(rootUserInstance);
+        await getSubUsers(rootUserInstance);
+      }
+    }
+    
+    res.json(allSubUsers);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'خطای داخلی سرور!' });
+  }
+};
+
 exports.loginUser = async (req, res) => {
   try {
     const { user_name_usr, pass_word_usr } = req.body;
@@ -191,16 +292,15 @@ exports.loginUser = async (req, res) => {
       return res.status(401).json({ message: 'نام کاربری یا رمز عبور اشتباه است.2' });
     }
 
-    const token = jwt.sign({ user_name_usr: this.user_name_usr }, 'secret_key', { expiresIn: '3h' });
-
+    // تولید توکن
+    const token = generateToken(user.user_name_usr);
     user.token_usr = token;
-    user.token_expr_usr = new Date(Date.now() + 3 * 60 * 60 * 1000); // Set token expiration time to 3 hours from now;
-    await user.save();
+await user.save();
 
     const userOrgans = await t_user_organ.findAll({ where: { user_name_usr }, attributes: ['code_organ_usr'], raw: true });
     const organCodes = userOrgans.map(userOrgan => userOrgan.code_organ_usr);
 
-    res.json({ user, organCodes, message: 'کاربر گرامی ' + user.name_usr + ' به سامانه خوش آمدید!' });
+    res.json({ token, user, organCodes, message: 'کاربر گرامی ' + user.name_usr + ' به سامانه خوش آمدید!' });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'عملیات با خطا مواجه شد: خطای داخلی سرور!' });
@@ -217,9 +317,8 @@ exports.logoutUser = async (req, res) => {
       return res.status(404).json({ message: 'کاربر یافت نشد.' });
     }
 
-    // Clear token and token expiration
+    // Clear token
     user.token_usr = null;
-    user.token_expr_usr = null;
     await user.save();
 
     res.json({ message: 'خروج از سامانه با موفقیت انجام شد.' });
