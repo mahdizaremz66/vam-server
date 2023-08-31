@@ -1,3 +1,4 @@
+const mdWarre = require('../middleware/authMiddleware');
 const sequelize = require('../config/database');
 
 const t_user = require('../models/t_user');
@@ -293,7 +294,7 @@ exports.loginUser = async (req, res) => {
     }
 
     // تولید توکن
-    const token = generateToken(user.user_name_usr);
+    const token = mdWarre.generateToken(user.user_name_usr);
     user.token_usr = token;
 await user.save();
 
